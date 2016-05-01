@@ -58,6 +58,8 @@ public class KafkaSpout extends BaseRichSpout {
     // Transient objects are not serialized by Storm (you would get an error)
     private transient KafkaConsumer<String, byte[]> consumer;
 
+    private KafkaConsumerThread kafkaConsumerThread;
+
     public KafkaSpout(String host, int port, String topic, String stream) {
         this.host = host;
         this.port = port;
@@ -82,22 +84,32 @@ public class KafkaSpout extends BaseRichSpout {
         consumer = new KafkaConsumer<>(props);
     }
 
+    @Override
+    public void close() {
+        super.close();
+        kafkaConsumerThread.close();
+    }
+
     @SuppressWarnings("rawtypes")
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+        System.out.println(consumer);
         this.collector = collector;
         tweetsToEmit = new ArrayList<>();
         // TODO Configure, create, and subscribe user to topics
         consumer.subscribe(Arrays.asList(topic));
-        new Thread(new KafkaConsumerThread()).run();
+        kafkaConsumerThread = new KafkaConsumerThread();
+        new Thread(kafkaConsumerThread).run();
     }
 
     @Override
     public void nextTuple() {
         // TODO Poll consumer for records, outputting to the correct topic
         // and a tuple of (key, value) of the record
+        System.out.println("next tuple called");
         lock();
         if (!tweetsToEmit.isEmpty()) {
+            System.out.println("adding element");
             collector.emit(stream, new Values(topic, tweetsToEmit.remove(0)));
         }
         lock = false;
@@ -129,14 +141,16 @@ public class KafkaSpout extends BaseRichSpout {
             BinaryDecoder decode = null;
             SpecificDatumReader<Tweet> reading = new SpecificDatumReader<>(Tweet.getClassSchema());
             Tweet tweet = null;
-
+            System.out.println("consuming");
             while (consume) {
                 ConsumerRecords<String, byte[]> records = consumer.poll(10);
+
                 lock();
                 for (ConsumerRecord<String, byte[]> record : records) {
                     tweetsToEmit.add(record.value());
                 }
                 lock = false;
+                System.out.println("consumed");
             }
             consumer.close();
         }
