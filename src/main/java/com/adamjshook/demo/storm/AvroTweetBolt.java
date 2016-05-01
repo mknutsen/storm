@@ -18,9 +18,9 @@
 
 package com.adamjshook.demo.storm;
 
-import java.text.SimpleDateFormat;
-import java.util.Map;
-
+import org.apache.avro.Conversion;
+import org.apache.avro.specific.SpecificDatumReader;
+import org.apache.storm.shade.org.apache.commons.codec.BinaryDecoder;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -28,44 +28,67 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import twitter.avro.Tweet;
+
+import java.text.SimpleDateFormat;
+import java.util.Map;
 
 public class AvroTweetBolt extends BaseRichBolt {
-	private static final long serialVersionUID = 1L;
-	public static final String HASHTAG_STREAM = "hashtags";
-	public static final String POPULAR_USERS_STREAM = "pop_users";
-	public static final String TWEETBEAN_STREAM = "tweetbeans";
 
-	// To decode Twitter's createdAt string to a java.util.Date object
-	private SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy");
+    public static final String HASHTAG_STREAM = "hashtags";
 
-	protected static final Logger LOG = LoggerFactory.getLogger(AvroTweetBolt.class);
-	private OutputCollector collector;
+    public static final String POPULAR_USERS_STREAM = "pop_users";
 
-	@SuppressWarnings("rawtypes")
-	@Override
-	public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-		this.collector = collector;
-		// TODO any initialization steps go here
-	}
+    public static final String TWEETBEAN_STREAM = "tweetbeans";
 
-	@Override
-	public void execute(Tuple input) {
+    protected static final Logger LOG = LoggerFactory.getLogger(AvroTweetBolt.class);
 
-		// TODO Get decode your Avro object from the input field
+    private static final long serialVersionUID = 1L;
 
-		// TODO Emit each hashtag to the HASHTAG_STREAM, one hashtag per tuple
+    // To decode Twitter's createdAt string to a java.util.Date object
+    private SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy");
 
-		// TODO Emit a tuple of (screen name, num followers) to the
-		// POPULAR_USERS_STREAM
+    private OutputCollector collector;
 
-		// TODO Emit a tuple of (TweetBean, created_at time (as long integer))
-		// to TWEETBEAN_STREAM
+    private BinaryDecoder decoder;
 
-		// TODO ack the input tuple via collector
-	}
+    private SpecificDatumReader<Tweet> tweetBeanSpecificDatumReader;
 
-	@Override
-	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		// TODO declare the output schemas of ALL THREE streams
-	}
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
+        this.collector = collector;
+        // TODO any initialization steps go here
+    }
+
+    @Override
+    public void execute(Tuple input) {
+        // TODO Get decode your Avro object from the input field
+        Conversion conversion = new Conversion<Tweet>() {
+
+            @Override
+            public Class<Tweet> getConvertedType() {
+                return null;
+            }
+
+            @Override
+            public String getLogicalTypeName() {
+                return null;
+            }
+        };
+        // TODO Emit each hashtag to the HASHTAG_STREAM, one hashtag per tuple
+
+        // TODO Emit a tuple of (screen name, num followers) to the
+        // POPULAR_USERS_STREAM
+
+        // TODO Emit a tuple of (TweetBean, created_at time (as long integer))
+        // to TWEETBEAN_STREAM
+
+        // TODO ack the input tuple via collector
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        // TODO declare the output schemas of ALL THREE streams
+    }
 }

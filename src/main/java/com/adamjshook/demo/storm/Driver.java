@@ -7,40 +7,44 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.topology.TopologyBuilder;
 
 public class Driver {
-	private static final String TWEET_STREAM = "tweet_stream";
 
-	// TODO is this the name of your Kafka tweet topic?
-	private static final String TWEET_TOPIC = "tweets";
+    private static final String TWEET_STREAM = "tweet_stream";
 
-	private static final String HASHTAG_KEY = "hashtags";
-	private static final String POPUSERS_KEY = "popusers";
-	private static final String TWEETBEAN_KEY = "tweetbeans";
+    // TODO is this the name of your Kafka tweet topic?
+    private static final String TWEET_TOPIC = "tweets";
 
-	public static void main(String[] args) throws Exception {
-		Config config = getConfig();
-		StormTopology topology = getTopology();
+    private static final String HASHTAG_KEY = "hashtags";
 
-		if (args.length == 0) {
-			LocalCluster cluster = new LocalCluster();
-			cluster.submitTopology("test", config, topology);
-			Thread.sleep(30000);
-		} else {
-			StormSubmitter.submitTopology(args[0], config, topology);
-		}
-		System.exit(0);
-	}
+    private static final String POPUSERS_KEY = "popusers";
 
-	protected static Config getConfig() {
-		Config config = new Config();
-		config.setDebug(true);
-		return config;
-	}
+    private static final String TWEETBEAN_KEY = "tweetbeans";
 
-	public static StormTopology getTopology() {
-		final TopologyBuilder tp = new TopologyBuilder();
+    public static void main(String[] args) throws Exception {
+        Config config = getConfig();
+        StormTopology topology = getTopology();
 
-		// TODO Build topology
+        if (args.length == 0) {
+            LocalCluster cluster = new LocalCluster();
+            cluster.submitTopology("test", config, topology);
+            Thread.sleep(30000);
+        } else {
+            StormSubmitter.submitTopology(args[0], config, topology);
+        }
+        System.exit(0);
+    }
 
-		return tp.createTopology();
-	}
+    protected static Config getConfig() {
+        Config config = new Config();
+        config.setDebug(true);
+        return config;
+    }
+
+    public static StormTopology getTopology() {
+        final TopologyBuilder tp = new TopologyBuilder();
+
+        // TODO Build topology
+        tp.setSpout("", new KafkaSpout("localhost", 9092, TWEET_TOPIC, TWEET_STREAM));
+
+        return tp.createTopology();
+    }
 }

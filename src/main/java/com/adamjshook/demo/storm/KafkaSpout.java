@@ -18,49 +18,131 @@
 
 package com.adamjshook.demo.storm;
 
-import java.util.Map;
-
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.specific.SpecificDatumReader;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import twitter.avro.Tweet;
+
+import java.util.*;
 
 public class KafkaSpout extends BaseRichSpout {
-	private static final long serialVersionUID = 4452520061482019710L;
-	protected static final Logger LOG = LoggerFactory.getLogger(KafkaSpout.class);
-	private SpoutOutputCollector collector;
 
-	private String host;
-	private int port;
-	private String topic;
-	private String stream;
+    protected static final Logger LOG = LoggerFactory.getLogger(KafkaSpout.class);
 
-	// Transient objects are not serialized by Storm (you would get an error)
-	private transient KafkaConsumer<String, byte[]> consumer;
+    private static final long serialVersionUID = 4452520061482019710L;
 
-	public KafkaSpout(String host, int port, String topic, String stream) {
-		// TODO set member variables
-	}
+    private SpoutOutputCollector collector;
 
-	@SuppressWarnings("rawtypes")
-	@Override
-	public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-		this.collector = collector;
+    private String host;
 
-		// TODO Configure, create, and subscribe user to topics
-	}
+    private int port;
 
-	@Override
-	public void nextTuple() {
-		// TODO Poll consumer for records, outputting to the correct topic
-		// and a tuple of (key, value) of the record
-	}
+    private String topic;
 
-	@Override
-	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		// TODO declare output stream for each configured stream
-	}
+    private String stream;
+
+    private boolean lock;
+
+    private List<Object> tweetsToEmit;
+
+    // Transient objects are not serialized by Storm (you would get an error)
+    private transient KafkaConsumer<String, byte[]> consumer;
+
+    public KafkaSpout(String host, int port, String topic, String stream) {
+        this.host = host;
+        this.port = port;
+        this.topic = topic;
+        this.stream = stream;
+        // TODO set member variables
+        final Properties props = new Properties();
+        props.put("acks", "all");
+        props.put("retries", 0);
+        props.put("batch.size", 16384);
+        props.put("linger.ms", 1);
+        props.put("buffer.memory", 33554432);
+        props.put("group.id", "test");
+        props.put("enable.auto.commit", "true");
+        props.put("auto.commit.interval.ms", "1000");
+        props.put("session.timeout.ms", "30000");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        props.put("bootstrap.servers", host + ":" + port);
+        consumer = new KafkaConsumer<>(props);
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+        this.collector = collector;
+        tweetsToEmit = new ArrayList<>();
+        // TODO Configure, create, and subscribe user to topics
+        consumer.subscribe(Arrays.asList(topic));
+        new Thread(new KafkaConsumerThread()).run();
+    }
+
+    @Override
+    public void nextTuple() {
+        // TODO Poll consumer for records, outputting to the correct topic
+        // and a tuple of (key, value) of the record
+        lock();
+        if (!tweetsToEmit.isEmpty()) {
+            collector.emit(stream, new Values(topic, tweetsToEmit.remove(0)));
+        }
+        lock = false;
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        // TODO declare output stream for each configured stream
+        declarer.declare(new Fields("topic", "value"));
+    }
+
+    private void lock() {
+        while (lock == true) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        lock = true;
+    }
+
+    class KafkaConsumerThread implements Runnable {
+
+        private boolean consume = true;
+
+        @Override
+        public void run() {
+            BinaryDecoder decode = null;
+            SpecificDatumReader<Tweet> reading = new SpecificDatumReader<>(Tweet.getClassSchema());
+            Tweet tweet = null;
+
+            while (consume) {
+                ConsumerRecords<String, byte[]> records = consumer.poll(10);
+                lock();
+                for (ConsumerRecord<String, byte[]> record : records) {
+                    tweetsToEmit.add(record.value());
+                }
+                lock = false;
+            }
+            consumer.close();
+        }
+
+        public void close() {
+            consume = false;
+        }
+    }
 }
