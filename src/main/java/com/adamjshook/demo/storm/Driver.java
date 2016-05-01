@@ -4,6 +4,7 @@ import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.starter.bolt.PrinterBolt;
 import org.apache.storm.topology.TopologyBuilder;
 
 public class Driver {
@@ -44,7 +45,7 @@ public class Driver {
 
         // TODO Build topology
         tp.setSpout("spout_tweets", new KafkaSpout("localhost", 9092, TWEET_TOPIC, TWEET_STREAM));
-
+        tp.setBolt("printer", new PrinterBolt());
         return tp.createTopology();
     }
 }

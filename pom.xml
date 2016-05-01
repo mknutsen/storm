@@ -89,5 +89,10 @@
 			<artifactId>commons-lang3</artifactId>
 			<version>3.4</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.storm</groupId>
+			<artifactId>storm-starter</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 	</dependencies>
 </project>
