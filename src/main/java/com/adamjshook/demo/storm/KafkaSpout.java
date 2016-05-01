@@ -66,7 +66,19 @@ public class KafkaSpout extends BaseRichSpout {
         this.topic = topic;
         this.stream = stream;
         // TODO set member variables
-        final Properties props = new Properties();
+        
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        kafkaConsumerThread.close();
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+    	final Properties props = new Properties();
         props.put("acks", "all");
         props.put("retries", 0);
         props.put("batch.size", 16384);
@@ -82,17 +94,6 @@ public class KafkaSpout extends BaseRichSpout {
         props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         props.put("bootstrap.servers", host + ":" + port);
         consumer = new KafkaConsumer<>(props);
-    }
-
-    @Override
-    public void close() {
-        super.close();
-        kafkaConsumerThread.close();
-    }
-
-    @SuppressWarnings("rawtypes")
-    @Override
-    public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         System.out.println(consumer);
         this.collector = collector;
         tweetsToEmit = new ArrayList<>();
@@ -125,6 +126,7 @@ public class KafkaSpout extends BaseRichSpout {
         while (lock == true) {
             try {
                 Thread.sleep(10);
+                System.out.println("locked");
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -150,7 +152,7 @@ public class KafkaSpout extends BaseRichSpout {
                     tweetsToEmit.add(record.value());
                 }
                 lock = false;
-                System.out.println("consumed");
+//                System.out.println("consumed");
             }
             consumer.close();
         }
