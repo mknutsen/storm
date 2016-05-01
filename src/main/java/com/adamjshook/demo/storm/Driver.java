@@ -43,7 +43,7 @@ public class Driver {
         final TopologyBuilder tp = new TopologyBuilder();
 
         // TODO Build topology
-        tp.setSpout("", new KafkaSpout("localhost", 9092, TWEET_TOPIC, TWEET_STREAM));
+        tp.setSpout("spout_tweets", new KafkaSpout("localhost", 9092, TWEET_TOPIC, TWEET_STREAM));
 
         return tp.createTopology();
     }
