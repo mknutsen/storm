@@ -78,7 +78,7 @@ public class KafkaSpout extends BaseRichSpout {
     @SuppressWarnings("rawtypes")
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-    	final Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("acks", "all");
         props.put("retries", 0);
         props.put("batch.size", 16384);
@@ -119,11 +119,11 @@ public class KafkaSpout extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         // TODO declare output stream for each configured stream
-        declarer.declare(new Fields("topic", "value"));
+        declarer.declareStream("spout_tweets", new Fields("topic", "value"));
     }
 
     private void lock() {
-        while (lock == true) {
+        while (lock) {
             try {
                 Thread.sleep(10);
                 System.out.println("locked");
@@ -152,7 +152,7 @@ public class KafkaSpout extends BaseRichSpout {
                     tweetsToEmit.add(record.value());
                 }
                 lock = false;
-//                System.out.println("consumed");
+                //                System.out.println("consumed");
             }
             consumer.close();
         }
