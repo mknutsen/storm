@@ -13,7 +13,7 @@ public class Driver {
 
     // TODO is this the name of your Kafka tweet topic?
     private static final String TWEET_TOPIC = "tweets";
-
+ 
     private static final String HASHTAG_KEY = "hashtags";
 
     private static final String POPUSERS_KEY = "popusers";
@@ -45,7 +45,7 @@ public class Driver {
 
         // TODO Build topology
         tp.setSpout("spout_tweets", new KafkaSpout("localhost", 9092, TWEET_TOPIC, TWEET_STREAM));
-        tp.setBolt("printer", new PrinterBolt());
+        tp.setBolt("printer", new PrinterBolt()).shuffleGrouping("spout_tweets",TWEET_STREAM);
         return tp.createTopology();
     }
 }
