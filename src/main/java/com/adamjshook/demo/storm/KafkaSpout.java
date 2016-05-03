@@ -119,7 +119,7 @@ public class KafkaSpout extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         // TODO declare output stream for each configured stream
-        declarer.declareStream("spout_tweets", new Fields("topic", "value"));
+        declarer.declareStream(stream, new Fields("topic", "value"));
     }
 
     private void lock() {

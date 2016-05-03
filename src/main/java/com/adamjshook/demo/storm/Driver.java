@@ -9,7 +9,7 @@ import org.apache.storm.topology.TopologyBuilder;
 
 public class Driver {
 
-    private static final String TWEET_STREAM = "tweet_stream";
+    public static final String TWEET_STREAM = "tweet_stream";
 
     // TODO is this the name of your Kafka tweet topic?
     private static final String TWEET_TOPIC = "tweets";
